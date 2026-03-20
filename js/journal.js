@@ -246,7 +246,7 @@ function wireEditTagField(containerId, key, editDraft) {
         chip.className = 'chip';
         chip.dataset.tag = tag;
         chip.dataset.key = key;
-        chip.innerHTML = `<span class="chip-remove">×</span> ${tag}`;
+        chip.innerHTML = `<span class="chip-remove">×</span> ${esc(tag)}`;
         chip.addEventListener('click', () => { editDraft[key] = editDraft[key].filter(t => t !== tag); chip.remove(); });
         container.insertBefore(chip, input);
       }
