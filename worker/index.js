@@ -24,18 +24,27 @@ Return raw JSON only — no markdown code blocks, no commentary.`;
 // ── Route handlers ────────────────────────────────────
 
 async function handleAnalyse(request, env) {
-  const { transcript } = await request.json();
+  let transcript;
+  try {
+    ({ transcript } = await request.json());
+  } catch {
+    return jsonError('invalid JSON body', 400);
+  }
   if (!transcript) return jsonError('transcript required', 400);
 
   // Pass 1: clean transcript
-  const cleanRes = await callClaude(env.ANTHROPIC_API_KEY, CLEAN_PROMPT, transcript);
+  const cleanRes = await callClaude(env.ANTHROPIC_API_KEY, CLEAN_PROMPT, transcript, 4096);
   if (!cleanRes.ok) return jsonError('Claude clean pass failed', 502);
-  const cleanedTranscript = (await cleanRes.json()).content[0].text.trim();
+  const cleanData = await cleanRes.json();
+  const cleanedTranscript = cleanData.content?.[0]?.text?.trim();
+  if (!cleanedTranscript) return jsonError('Claude clean pass returned empty content', 502);
 
   // Pass 2: analyse cleaned transcript
   const analyseRes = await callClaude(env.ANTHROPIC_API_KEY, ANALYSE_PROMPT, cleanedTranscript);
   if (!analyseRes.ok) return jsonError('Claude analyse pass failed', 502);
-  const analysisText = (await analyseRes.json()).content[0].text.trim();
+  const analyseData = await analyseRes.json();
+  const analysisText = analyseData.content?.[0]?.text?.trim();
+  if (!analysisText) return jsonError('Claude analyse pass returned empty content', 502);
 
   let analysis;
   try {
@@ -49,8 +58,20 @@ async function handleAnalyse(request, env) {
 }
 
 async function handleSave(request, env) {
-  const dream = await request.json();
+  let dream;
+  try {
+    dream = await request.json();
+  } catch {
+    return jsonError('invalid JSON body', 400);
+  }
   if (!dream) return jsonError('dream required', 400);
+  if (!dream.date) return jsonError('dream.date required', 400);
+  // Default array fields to empty arrays if missing
+  dream.emotions    = dream.emotions    ?? [];
+  dream.themes      = dream.themes      ?? [];
+  dream.characters  = dream.characters  ?? [];
+  dream.locations   = dream.locations   ?? [];
+  dream.dreamSigns  = dream.dreamSigns  ?? [];
 
   const notionRes = await createNotionPage(env.NOTION_API_KEY, env.NOTION_DATABASE_ID, dream);
   if (!notionRes.ok) {
@@ -69,7 +90,12 @@ async function handleGetDreams(env) {
 }
 
 async function handleUpdateDream(request, env) {
-  const { notionPageId, patch } = await request.json();
+  let notionPageId, patch;
+  try {
+    ({ notionPageId, patch } = await request.json());
+  } catch {
+    return jsonError('invalid JSON body', 400);
+  }
   if (!notionPageId) return jsonError('notionPageId required', 400);
 
   const notionRes = await updateNotionPage(env.NOTION_API_KEY, notionPageId, patch);
@@ -95,8 +121,12 @@ export default {
     try {
       let response;
       switch (path) {
-        case '/analyse': response = await handleAnalyse(request, env); break;
-        case '/save':    response = await handleSave(request, env);    break;
+        case '/analyse':
+          if (request.method !== 'POST') { response = jsonError('Method not allowed', 405); break; }
+          response = await handleAnalyse(request, env); break;
+        case '/save':
+          if (request.method !== 'POST') { response = jsonError('Method not allowed', 405); break; }
+          response = await handleSave(request, env); break;
         case '/dreams':
           if (request.method !== 'POST') {
             response = jsonError('Method not allowed', 405);
@@ -104,7 +134,9 @@ export default {
           }
           response = await handleGetDreams(env);
           break;
-        case '/update':  response = await handleUpdateDream(request, env); break;
+        case '/update':
+          if (request.method !== 'POST') { response = jsonError('Method not allowed', 405); break; }
+          response = await handleUpdateDream(request, env); break;
         case '/ping':    response = await handlePing();                 break;
         default: response = jsonError('Not found', 404);
       }
@@ -120,7 +152,7 @@ export default {
 };
 
 // ── Anthropic helper ──────────────────────────────────
-function callClaude(apiKey, systemPrompt, userText) {
+function callClaude(apiKey, systemPrompt, userText, maxTokens = 1024) {
   return fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -130,7 +162,7 @@ function callClaude(apiKey, systemPrompt, userText) {
     },
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 1024,
+      max_tokens: maxTokens,
       system: systemPrompt,
       messages: [{ role: 'user', content: userText }],
     }),
