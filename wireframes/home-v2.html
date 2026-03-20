@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Dreamlog — Home Screen v2</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #080a14; color: #f1f0ff;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    padding: 40px 24px; min-height: 100vh;
+  }
+  h1 { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #6b7280; margin-bottom: 36px; }
+  .screens-row { display: flex; gap: 28px; flex-wrap: wrap; justify-content: center; }
+  .screen-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .screen-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #6b7280; }
+
+  .iphone {
+    width: 260px; height: 530px;
+    background: #0d0f1a; border-radius: 40px;
+    border: 2px solid #1e2240; position: relative; overflow: hidden;
+    box-shadow: 0 0 0 1px #0a0c17, 0 24px 64px rgba(0,0,0,0.7);
+  }
+  .iphone::before {
+    content: ''; position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+    width: 72px; height: 5px; background: #1e2240; border-radius: 3px; z-index: 10;
+  }
+  .iphone-inner {
+    position: absolute; inset: 0;
+    padding: 34px 18px 20px;
+    display: flex; flex-direction: column;
+  }
+
+  .hamburger { width: 26px; height: 18px; display: flex; flex-direction: column; justify-content: space-between; }
+  .hamburger span { display: block; height: 2px; background: #a78bfa; border-radius: 2px; }
+
+  .home-meta { text-align: center; margin-top: 6px; }
+  .home-date { font-size: 11px; color: #6b7280; }
+  .home-nudge { font-size: 10px; color: #3d3f5c; margin-top: 3px; }
+
+  /* Button always centred — same position in all states */
+  .record-btn-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+  }
+
+  /* Deeper purple button */
+  .record-btn {
+    width: 110px; height: 110px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #6d28d9, #3b0764);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 0 14px rgba(109,40,217,0.12), 0 0 0 28px rgba(109,40,217,0.06);
+  }
+  .record-btn svg { width: 40px; height: 40px; fill: white; }
+
+  /* Recording state — same purple, same size, pulsing */
+  .record-btn.recording {
+    background: radial-gradient(circle at 35% 35%, #6d28d9, #3b0764);
+    box-shadow: 0 0 0 14px rgba(109,40,217,0.15), 0 0 0 28px rgba(109,40,217,0.07);
+    animation: pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%,100% { transform: scale(1); box-shadow: 0 0 0 14px rgba(109,40,217,0.15), 0 0 0 28px rgba(109,40,217,0.07); }
+    50% { transform: scale(1.06); box-shadow: 0 0 0 18px rgba(109,40,217,0.18), 0 0 0 34px rgba(109,40,217,0.08); }
+  }
+
+  /* Paused state — same purple, dimmed slightly */
+  .record-btn.paused {
+    background: radial-gradient(circle at 35% 35%, #4c1d95, #2e1065);
+    box-shadow: 0 0 0 14px rgba(109,40,217,0.07), 0 0 0 28px rgba(109,40,217,0.03);
+  }
+
+  .tap-hint { font-size: 11px; color: #3d3f5c; }
+
+  .rec-controls { display: flex; gap: 7px; width: 100%; }
+  .btn-sm {
+    flex: 1; padding: 9px 5px; border-radius: 10px;
+    font-size: 11px; font-weight: 500; text-align: center;
+  }
+  /* Both pause and resume in purple */
+  .btn-pause  { background: #1a1e38; color: #a78bfa; border: 1px solid #2d2f52; }
+  .btn-resume { background: #1a1e38; color: #a78bfa; border: 1px solid #2d2f52; }
+  .btn-discard { background: #1a1e38; color: #f87171; border: 1px solid #2d2f52; }
+
+  .btn-submit {
+    width: 100%; padding: 12px; border-radius: 12px;
+    background: linear-gradient(135deg, #6d28d9, #4c1d95);
+    color: white; font-size: 12px; font-weight: 600;
+    text-align: center; letter-spacing: 0.02em;
+  }
+
+  .paused-hint { font-size: 10px; color: #4c4f6b; text-align: center; }
+
+  /* Bottom controls area — fixed height so button never moves */
+  .bottom-controls { display: flex; flex-direction: column; gap: 8px; min-height: 88px; justify-content: flex-end; }
+</style>
+</head>
+<body>
+<h1>Dreamlog — Home Screen v2</h1>
+<p class="subtitle">Button stays centred and purple throughout all three states. No live transcript.</p>
+
+<div class="screens-row">
+
+  <!-- IDLE -->
+  <div class="screen-wrap">
+    <span class="screen-label">Idle</span>
+    <div class="iphone">
+      <div class="iphone-inner">
+        <div class="hamburger"><span></span><span></span><span></span></div>
+        <div class="home-meta">
+          <div class="home-date">Thursday, 19 March · 06:14</div>
+          <div class="home-nudge">You've logged 3 dreams this week</div>
+        </div>
+        <div class="record-btn-wrap">
+          <div class="record-btn">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg>
+          </div>
+          <div class="tap-hint">Tap to record</div>
+        </div>
+        <!-- empty bottom space matches other states -->
+        <div style="min-height:88px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RECORDING -->
+  <div class="screen-wrap">
+    <span class="screen-label">Recording</span>
+    <div class="iphone">
+      <div class="iphone-inner">
+        <div class="hamburger"><span></span><span></span><span></span></div>
+        <div class="home-meta">
+          <div class="home-date">Thursday, 19 March · 06:14</div>
+        </div>
+        <div class="record-btn-wrap">
+          <!-- Same size, same position, same purple — just pulsing -->
+          <div class="record-btn recording">
+            <svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+          </div>
+          <div class="tap-hint" style="opacity:0">placeholder</div>
+        </div>
+        <div class="bottom-controls">
+          <div class="rec-controls">
+            <div class="btn-sm btn-pause">⏸ Pause</div>
+            <div class="btn-sm btn-discard">✕ Discard</div>
+          </div>
+          <div class="btn-submit">Submit Journal Entry</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAUSED -->
+  <div class="screen-wrap">
+    <span class="screen-label">Paused</span>
+    <div class="iphone">
+      <div class="iphone-inner">
+        <div class="hamburger"><span></span><span></span><span></span></div>
+        <div class="home-meta">
+          <div class="home-date">Thursday, 19 March · 06:14</div>
+        </div>
+        <div class="record-btn-wrap">
+          <div class="record-btn paused">
+            <svg viewBox="0 0 24 24" style="fill:white"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+          </div>
+          <div class="paused-hint">Paused — tap Resume to continue</div>
+        </div>
+        <div class="bottom-controls">
+          <div class="rec-controls">
+            <div class="btn-sm btn-resume">▶ Resume</div>
+            <div class="btn-sm btn-discard">✕ Discard</div>
+          </div>
+          <div class="btn-submit">Submit Journal Entry</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
