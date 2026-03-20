@@ -214,11 +214,17 @@ function renderEditMode(body, dream) {
 function editTagField(label, id, key, editDraft) {
   return `
     <div class="mt-12">
-      <span class="field-label">${label}</span>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <span class="field-label" style="margin-bottom:0">${label}</span>
+        <button id="${id}-add" style="background:none;border:none;color:var(--accent-soft);font-size:22px;cursor:pointer;padding:0;line-height:1;width:28px;height:28px;display:flex;align-items:center;justify-content:center">+</button>
+      </div>
       <div class="chips-row" id="${id}">
         ${editDraft[key].map(t => `<span class="chip" data-tag="${esc(t)}" data-key="${key}"><span class="chip-remove">×</span> ${esc(t)}</span>`).join('')}
-        <input type="text" placeholder="+ Add" id="${id}-input"
-               style="background:none;border:none;color:var(--text-faint);font-size:13px;outline:none;width:100px">
+      </div>
+      <div id="${id}-input-wrap" style="display:none;margin-top:8px">
+        <input type="text" placeholder="Tag name" id="${id}-input"
+               autocomplete="off" autocorrect="off" autocapitalize="words"
+               style="width:100%;background:var(--bg-elevated);border:1px solid var(--border-soft);border-radius:var(--radius-sm);color:var(--text-primary);font-size:16px;outline:none;padding:8px 12px">
       </div>
     </div>
   `;
@@ -235,22 +241,35 @@ function wireEditTagField(containerId, key, editDraft) {
     });
   });
 
-  const input = document.getElementById(`${containerId}-input`);
-  if (!input) return;
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && input.value.trim()) {
-      const tag = input.value.trim();
-      if (!editDraft[key].includes(tag)) {
-        editDraft[key].push(tag);
-        const chip = document.createElement('span');
-        chip.className = 'chip';
-        chip.dataset.tag = tag;
-        chip.dataset.key = key;
-        chip.innerHTML = `<span class="chip-remove">×</span> ${esc(tag)}`;
-        chip.addEventListener('click', () => { editDraft[key] = editDraft[key].filter(t => t !== tag); chip.remove(); });
-        container.insertBefore(chip, input);
-      }
-      input.value = '';
+  const input  = document.getElementById(`${containerId}-input`);
+  const wrap   = document.getElementById(`${containerId}-input-wrap`);
+  const addBtn = document.getElementById(`${containerId}-add`);
+  if (!input || !wrap || !addBtn) return;
+
+  function showInput() { wrap.style.display = 'block'; input.focus(); }
+  function hideInput() { wrap.style.display = 'none'; input.value = ''; }
+
+  function commitInput() {
+    const tag = input.value.trim();
+    if (tag && !editDraft[key].includes(tag)) {
+      editDraft[key].push(tag);
+      const chip = document.createElement('span');
+      chip.className = 'chip';
+      chip.dataset.tag = tag;
+      chip.innerHTML = `<span class="chip-remove">×</span> ${esc(tag)}`;
+      chip.addEventListener('click', () => { editDraft[key] = editDraft[key].filter(t => t !== tag); chip.remove(); });
+      container.appendChild(chip);
     }
+    hideInput();
+  }
+
+  addBtn.addEventListener('click', () => {
+    if (wrap.style.display === 'none') showInput();
+    else commitInput();
+  });
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); commitInput(); }
+    if (e.key === 'Escape') hideInput();
   });
 }

@@ -229,13 +229,14 @@ function renderLuciditySelector() {
 function tagField(label, id, field) {
   return `
     <div class="mt-16">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
         <span class="field-label" style="margin-bottom:0">${label}</span>
         <button id="${id}-add" style="background:none;border:none;color:var(--accent-soft);font-size:22px;cursor:pointer;padding:0;line-height:1;width:28px;height:28px;display:flex;align-items:center;justify-content:center">+</button>
       </div>
       <div class="chips-row" id="${id}"></div>
       <div class="chip-input-wrap" id="${id}-input-wrap" style="display:none;margin-top:8px;position:relative">
         <input type="text" placeholder="Tag name" data-field="${field}"
+               autocomplete="off" autocorrect="off" autocapitalize="words"
                style="width:100%;background:var(--bg-elevated);border:1px solid var(--border-soft);border-radius:var(--radius-sm);color:var(--text-primary);font-size:16px;outline:none;padding:8px 12px"
                class="chip-text-input" id="${id}-input">
         <div class="chip-autocomplete" id="${id}-autocomplete" style="display:none"></div>
