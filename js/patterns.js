@@ -32,7 +32,7 @@ export function computeStats(dreams) {
   }
 
   // Best streak (full scan)
-  let bestStreak = 0, streak = 1;
+  let bestStreak = 1, streak = 1;
   for (let i = 1; i < dates.length; i++) {
     const prev = new Date(dates[i - 1]);
     prev.setDate(prev.getDate() - 1);

@@ -84,4 +84,8 @@ describe('computeStats', () => {
     const dreams = [{ date: today }, { date: old }];
     assert.equal(computeStats(dreams).currentStreak, 1);
   });
+
+  it('bestStreak is 1 for a single old dream', () => {
+    assert.equal(computeStats([{ date: '2020-01-01' }]).bestStreak, 1);
+  });
 });
