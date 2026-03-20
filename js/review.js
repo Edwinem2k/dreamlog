@@ -22,6 +22,13 @@ export function render(container) {
   draft.rawTranscript = state.pendingTranscript || '';
   draft.cleanedTranscript = '';
   draft.lucidity = 0;
+  draft.lucidityLabel = 'Unaware';
+  draft.emotions   = [];
+  draft.themes     = [];
+  draft.characters = [];
+  draft.locations  = [];
+  draft.dreamSigns = [];
+  draft.summary    = '';
 
   container.innerHTML = `
     <div class="screen">
@@ -84,6 +91,16 @@ export function render(container) {
   // Render (empty) tag fields
   renderAllTagFields();
 
+  // Wire tag inputs once (not on every re-render)
+  const fields = [
+    { id: 'rev-emotions',   key: 'emotions' },
+    { id: 'rev-themes',     key: 'themes' },
+    { id: 'rev-characters', key: 'characters' },
+    { id: 'rev-locations',  key: 'locations' },
+    { id: 'rev-dreamsigns', key: 'dreamSigns' },
+  ];
+  fields.forEach(({ id, key }) => wireTagInput(id, key));
+
   // Start analysis
   runAnalysis();
 }
@@ -92,10 +109,12 @@ export function render(container) {
 async function runAnalysis() {
   const transcriptEl = document.getElementById('rev-transcript');
   const summaryEl    = document.getElementById('rev-summary');
-  const saveBtn      = document.getElementById('rev-save');
 
   try {
     const result = await api.analyseTranscript(draft.rawTranscript);
+
+    // Guard: if user navigated away, elements are gone
+    if (!document.getElementById('rev-transcript')) return;
 
     draft.cleanedTranscript = result.cleanedTranscript;
     draft.emotions    = result.analysis.emotions    || [];
@@ -109,14 +128,17 @@ async function runAnalysis() {
     summaryEl.value    = draft.summary;
     renderAllTagFields();
   } catch (err) {
+    if (!document.getElementById('rev-transcript')) return;
     // Graceful degradation — user fills in manually
     transcriptEl.placeholder = 'Analysis unavailable — fill in manually.';
     summaryEl.placeholder    = 'Analysis unavailable — fill in manually.';
     console.warn('Analysis failed:', err);
   } finally {
-    saveBtn.disabled   = false;
-    saveBtn.textContent = 'Save to Notion';
-    saveBtn.addEventListener('click', handleSave);
+    const btn = document.getElementById('rev-save');
+    if (!btn) return; // navigated away
+    btn.disabled    = false;
+    btn.textContent = 'Save to Notion';
+    btn.onclick = handleSave; // use onclick to prevent listener accumulation
   }
 }
 
@@ -246,8 +268,7 @@ function renderTagField(containerId, tags, draftKey) {
     });
   });
 
-  // Wire up add input
-  wireTagInput(containerId, draftKey);
+  // NOTE: wireTagInput is NOT called here anymore
 }
 
 function wireTagInput(containerId, draftKey) {
