@@ -97,7 +97,13 @@ export default {
       switch (path) {
         case '/analyse': response = await handleAnalyse(request, env); break;
         case '/save':    response = await handleSave(request, env);    break;
-        case '/dreams':  response = await handleGetDreams(env);        break;
+        case '/dreams':
+          if (request.method !== 'POST') {
+            response = jsonError('Method not allowed', 405);
+            break;
+          }
+          response = await handleGetDreams(env);
+          break;
         case '/update':  response = await handleUpdateDream(request, env); break;
         case '/ping':    response = await handlePing();                 break;
         default: response = jsonError('Not found', 404);
@@ -106,7 +112,9 @@ export default {
       Object.entries(CORS_HEADERS).forEach(([k, v]) => response.headers.set(k, v));
       return response;
     } catch (err) {
-      return jsonError(`Internal error: ${err.message}`, 500);
+      const errResponse = jsonError(`Internal error: ${err.message}`, 500);
+      Object.entries(CORS_HEADERS).forEach(([k, v]) => errResponse.headers.set(k, v));
+      return errResponse;
     }
   },
 };
