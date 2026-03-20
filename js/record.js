@@ -16,9 +16,11 @@ let recognition = null;
 let isRecording  = false;
 let isPaused     = false;
 let rawTranscript = '';
+let _container = null;
 
 // ── Render ────────────────────────────────────────────
 export function render(container) {
+  _container = container;
   // Clean up any active recognition when navigating away
   stopRecognition();
   rawTranscript = '';
@@ -93,7 +95,7 @@ function handlePauseTap() {
 function handleDiscard() {
   if (!confirm('Discard this entry?')) return;
   stopRecognition();
-  render(document.querySelector('.screen-container'));
+  render(_container);
 }
 
 function handleSubmit() {
@@ -107,28 +109,37 @@ function handleSubmit() {
 }
 
 // ── Recording logic ───────────────────────────────────
-function startRecording() {
+function createRecognition() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) {
-    alert('Voice recording is not supported in this browser. Use Safari on iPhone or Chrome on desktop.');
-    return;
-  }
-
-  recognition = new SpeechRecognition();
-  recognition.continuous    = true;
-  recognition.interimResults = false;
-  recognition.lang          = 'en-US';
-
-  recognition.onresult = (e) => {
+  if (!SpeechRecognition) return null;
+  const r = new SpeechRecognition();
+  r.continuous     = true;
+  r.interimResults = false;
+  r.lang           = 'en-US';
+  r.onresult = (e) => {
     for (let i = e.resultIndex; i < e.results.length; i++) {
       if (e.results[i].isFinal) rawTranscript += e.results[i][0].transcript + ' ';
     }
   };
-
-  recognition.onerror = (e) => {
+  r.onerror = (e) => {
     if (e.error !== 'aborted') console.warn('Speech recognition error:', e.error);
   };
+  r.onend = () => {
+    if (isRecording && !isPaused) {
+      isRecording = false;
+      isPaused = true;
+      updateUI('paused');
+    }
+  };
+  return r;
+}
 
+function startRecording() {
+  recognition = createRecognition();
+  if (!recognition) {
+    alert('Voice recording is not supported in this browser. Use Safari on iPhone or Chrome on desktop.');
+    return;
+  }
   recognition.start();
   isRecording = true;
   isPaused    = false;
@@ -143,23 +154,11 @@ function pauseRecording() {
 }
 
 function resumeRecording() {
-  // Create a fresh instance — calling start() on a stopped instance throws in some browsers
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  recognition = new SpeechRecognition();
-  recognition.continuous     = true;
-  recognition.interimResults = false;
-  recognition.lang           = 'en-US';
-  recognition.onresult = (e) => {
-    for (let i = e.resultIndex; i < e.results.length; i++) {
-      if (e.results[i].isFinal) rawTranscript += e.results[i][0].transcript + ' ';
-    }
-  };
-  recognition.onerror = (e) => {
-    if (e.error !== 'aborted') console.warn('Speech recognition error:', e.error);
-  };
+  // Fresh instance — calling start() on a stopped instance throws in some browsers
+  recognition = createRecognition();
   recognition.start();
   isRecording = true;
-  isPaused = false;
+  isPaused    = false;
   updateUI('recording');
 }
 
@@ -172,7 +171,8 @@ function stopRecognition() {
 
 // ── UI updates ────────────────────────────────────────
 function updateUI(state) {
-  const btn      = document.getElementById('rec-btn');
+  const btn = document.getElementById('rec-btn');
+  if (!btn) return; // navigated away; ignore stale callback
   const hint     = document.getElementById('rec-hint');
   const controls = document.getElementById('rec-controls');
   const pauseBtn = document.getElementById('rec-pause');
@@ -181,6 +181,7 @@ function updateUI(state) {
     btn.className = 'record-btn recording';
     btn.innerHTML = iconStop();
     hint.textContent = '';
+    hint.style.display = ''; // reset to stylesheet default
     controls.style.display = 'block';
     pauseBtn.textContent = '⏸ Pause';
   } else if (state === 'paused') {
