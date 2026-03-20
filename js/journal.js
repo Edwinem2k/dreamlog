@@ -1,8 +1,16 @@
 // js/journal.js
-import { openDrawer, navigate } from './app.js';
+import { openDrawer } from './app.js';
 import { db } from './db.js';
 import { api } from './api.js';
 import { LUCIDITY_LEVELS } from './record.js';
+
+function esc(str) {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
 
 export function render(container) {
   container.innerHTML = `
@@ -61,16 +69,16 @@ function dreamCard(dream) {
   const level = LUCIDITY_LEVELS[dream.lucidity] || LUCIDITY_LEVELS[0];
   const badgeClass = dream.lucidity >= 4 ? 'badge-high' : dream.lucidity > 0 ? 'badge-lucid' : 'badge-none';
   const topSigns = (dream.dreamSigns || []).slice(0, 3).map(t =>
-    `<span style="font-size:11px;padding:2px 7px;border-radius:999px;background:var(--bg-elevated);color:var(--text-ghost);border:1px solid var(--border-soft)">${t}</span>`
+    `<span style="font-size:11px;padding:2px 7px;border-radius:999px;background:var(--bg-elevated);color:var(--text-ghost);border:1px solid var(--border-soft)">${esc(t)}</span>`
   ).join('');
 
   return `
-    <div class="card" data-id="${dream.id}">
+    <div class="card" data-id="${esc(dream.id)}">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <span style="font-size:12px;color:var(--text-faint)">${dream.date}</span>
-        <span class="badge ${badgeClass}">${level.name}</span>
+        <span style="font-size:12px;color:var(--text-faint)">${esc(dream.date)}</span>
+        <span class="badge ${badgeClass}">${esc(level.name)}</span>
       </div>
-      <p style="font-size:14px;color:var(--text-muted);line-height:1.4;margin-bottom:8px">${(dream.summary || '').slice(0, 80)}${dream.summary?.length > 80 ? '…' : ''}</p>
+      <p style="font-size:14px;color:var(--text-muted);line-height:1.4;margin-bottom:8px">${esc((dream.summary || '').slice(0, 80))}${dream.summary?.length > 80 ? '…' : ''}</p>
       <div style="display:flex;gap:5px;flex-wrap:wrap">${topSigns}</div>
     </div>
   `;
@@ -86,15 +94,15 @@ function renderDetail(body, dream) {
     <div style="padding-bottom:20px" class="safe-bottom">
       <button id="det-back" style="background:none;border:none;color:var(--accent-soft);font-size:13px;cursor:pointer;padding:0 0 12px">← Back</button>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <span style="font-size:13px;color:var(--text-faint)">${dream.date}</span>
-        <span class="badge ${badgeClass}">${level.name}</span>
+        <span style="font-size:13px;color:var(--text-faint)">${esc(dream.date)}</span>
+        <span class="badge ${badgeClass}">${esc(level.name)}</span>
       </div>
 
-      <p style="font-size:14px;line-height:1.6;color:var(--text-muted);margin-bottom:12px">${dream.cleanedTranscript || ''}</p>
+      <p style="font-size:14px;line-height:1.6;color:var(--text-muted);margin-bottom:12px">${esc(dream.cleanedTranscript || '')}</p>
 
       <details style="margin-bottom:16px">
         <summary style="font-size:12px;color:var(--text-ghost);cursor:pointer">▶ View raw recording</summary>
-        <p style="font-size:12px;color:var(--text-faint);padding:10px;background:var(--bg-elevated);border-radius:var(--radius-sm);margin-top:6px;line-height:1.5">${dream.rawTranscript || ''}</p>
+        <p style="font-size:12px;color:var(--text-faint);padding:10px;background:var(--bg-elevated);border-radius:var(--radius-sm);margin-top:6px;line-height:1.5">${esc(dream.rawTranscript || '')}</p>
       </details>
 
       ${detailTagRow('Dream Signs', dream.dreamSigns)}
@@ -104,7 +112,7 @@ function renderDetail(body, dream) {
       ${detailTagRow('Locations',   dream.locations)}
 
       <div style="margin-top:16px;padding:12px;background:var(--bg-elevated);border-radius:var(--radius-sm)">
-        <p style="font-size:13px;color:var(--text-muted);line-height:1.5">${dream.summary || ''}</p>
+        <p style="font-size:13px;color:var(--text-muted);line-height:1.5">${esc(dream.summary || '')}</p>
       </div>
 
       <button class="btn-secondary mt-20" id="det-edit" style="width:100%;text-align:center">✏️ Edit tags & details</button>
@@ -117,7 +125,7 @@ function renderDetail(body, dream) {
 
 function detailTagRow(label, tags) {
   if (!tags?.length) return '';
-  const chips = tags.map(t => `<span class="chip" style="cursor:default">${t}</span>`).join('');
+  const chips = tags.map(t => `<span class="chip" style="cursor:default">${esc(t)}</span>`).join('');
   return `<div class="mt-12"><span class="field-label">${label}</span><div class="chips-row">${chips}</div></div>`;
 }
 
@@ -151,7 +159,7 @@ function renderEditMode(body, dream) {
 
       <div class="mt-16">
         <label class="field-label" for="edit-summary">Summary</label>
-        <textarea id="edit-summary" class="input textarea" rows="3">${editDraft.summary}</textarea>
+        <textarea id="edit-summary" class="input textarea" rows="3">${esc(editDraft.summary)}</textarea>
       </div>
 
       <button class="btn-primary mt-20" id="edit-save">Save changes</button>
@@ -162,8 +170,8 @@ function renderEditMode(body, dream) {
   const lucContainer = document.getElementById('edit-lucidity');
   lucContainer.innerHTML = LUCIDITY_LEVELS.map(l => `
     <button class="lucidity-opt${l.value === editDraft.lucidity ? ' selected' : ''}"
-            data-value="${l.value}" data-label="${l.name}">
-      <span class="lopt-name">${l.name}</span>
+            data-value="${l.value}" data-label="${esc(l.name)}">
+      <span class="lopt-name">${esc(l.name)}</span>
     </button>
   `).join('');
   lucContainer.querySelectorAll('.lucidity-opt').forEach(btn => {
@@ -177,7 +185,7 @@ function renderEditMode(body, dream) {
 
   // Wire tag fields
   ['emotions','themes','characters','locations','dreamSigns'].forEach(key => {
-    wireEditTagField(`edit-${key.toLowerCase().replace('dreamsigns','dreamsigns')}`, key, editDraft);
+    wireEditTagField(`edit-${key.toLowerCase()}`, key, editDraft);
   });
 
   document.getElementById('edit-back').addEventListener('click', () => renderDetail(body, dream));
@@ -208,7 +216,7 @@ function editTagField(label, id, key, editDraft) {
     <div class="mt-12">
       <span class="field-label">${label}</span>
       <div class="chips-row" id="${id}">
-        ${editDraft[key].map(t => `<span class="chip" data-tag="${t}" data-key="${key}"><span class="chip-remove">×</span> ${t}</span>`).join('')}
+        ${editDraft[key].map(t => `<span class="chip" data-tag="${esc(t)}" data-key="${key}"><span class="chip-remove">×</span> ${esc(t)}</span>`).join('')}
         <input type="text" placeholder="+ Add" id="${id}-input"
                style="background:none;border:none;color:var(--text-faint);font-size:13px;outline:none;width:100px">
       </div>
