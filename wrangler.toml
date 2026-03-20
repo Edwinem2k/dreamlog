@@ -1,0 +1,11 @@
+name = "dreamlog-worker"
+main = "worker/index.js"
+compatibility_date = "2024-01-01"
+
+# KV namespace for push subscriptions (Phase 3)
+# [[kv_namespaces]]
+# binding = "DREAM_KV"
+# id = "YOUR_KV_ID_HERE"
+
+[vars]
+# Non-secret vars go here. Secrets (API keys) set via: npx wrangler secret put KEY_NAME
