@@ -17,6 +17,7 @@ let isRecording  = false;
 let isPaused     = false;
 let rawTranscript = '';
 let _container = null;
+let _wakeLock = null;
 
 // ── Render ────────────────────────────────────────────
 export function render(container) {
@@ -134,7 +135,7 @@ function createRecognition() {
   return r;
 }
 
-function startRecording() {
+async function startRecording() {
   recognition = createRecognition();
   if (!recognition) {
     alert('Voice recording is not supported in this browser. Use Safari on iPhone or Chrome on desktop.');
@@ -144,6 +145,10 @@ function startRecording() {
   isRecording = true;
   isPaused    = false;
   updateUI('recording');
+  // Keep screen awake while recording
+  try {
+    if ('wakeLock' in navigator) _wakeLock = await navigator.wakeLock.request('screen');
+  } catch { /* wake lock not available — silently ignore */ }
 }
 
 function pauseRecording() {
@@ -167,6 +172,8 @@ function stopRecognition() {
   recognition = null;
   isRecording = false;
   isPaused    = false;
+  _wakeLock?.release();
+  _wakeLock = null;
 }
 
 // ── UI updates ────────────────────────────────────────
