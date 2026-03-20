@@ -222,7 +222,7 @@ function editTagField(label, id, key, editDraft) {
         ${editDraft[key].map(t => `<span class="chip" data-tag="${esc(t)}" data-key="${key}"><span class="chip-remove">×</span> ${esc(t)}</span>`).join('')}
       </div>
       <div id="${id}-input-wrap" style="display:none;margin-top:8px">
-        <input type="text" placeholder="Tag name" id="${id}-input"
+        <input type="search" placeholder="Tag name" id="${id}-input"
                autocomplete="off" autocorrect="off" autocapitalize="words"
                style="width:100%;background:var(--bg-elevated);border:1px solid var(--border-soft);border-radius:var(--radius-sm);color:var(--text-primary);font-size:16px;outline:none;padding:8px 12px">
       </div>

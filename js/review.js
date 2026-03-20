@@ -235,7 +235,7 @@ function tagField(label, id, field) {
       </div>
       <div class="chips-row" id="${id}"></div>
       <div class="chip-input-wrap" id="${id}-input-wrap" style="display:none;margin-top:8px;position:relative">
-        <input type="text" placeholder="Tag name" data-field="${field}"
+        <input type="search" placeholder="Tag name" data-field="${field}"
                autocomplete="off" autocorrect="off" autocapitalize="words"
                style="width:100%;background:var(--bg-elevated);border:1px solid var(--border-soft);border-radius:var(--radius-sm);color:var(--text-primary);font-size:16px;outline:none;padding:8px 12px"
                class="chip-text-input" id="${id}-input">

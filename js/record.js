@@ -17,6 +17,7 @@ let isRecording  = false;
 let isPaused     = false;
 let rawTranscript = '';
 let _container = null;
+let _submitOnEnd = false;
 
 // ── Render ────────────────────────────────────────────
 export function render(container) {
@@ -99,12 +100,19 @@ function handleDiscard() {
 }
 
 function handleSubmit() {
+  if (isRecording) {
+    // Stop recognition; onend will navigate once all results are committed
+    _submitOnEnd = true;
+    recognition?.stop();
+    const btn = document.getElementById('rec-submit');
+    if (btn) { btn.disabled = true; btn.textContent = 'Finishing…'; }
+    return;
+  }
   if (!rawTranscript.trim()) {
     alert('Nothing recorded yet — tap the button and speak before submitting.');
     return;
   }
   stopRecognition();
-  // Pass raw transcript to shared state, navigate to review
   navigate('review', { pendingTranscript: rawTranscript });
 }
 
@@ -125,6 +133,17 @@ function createRecognition() {
     if (e.error !== 'aborted') console.warn('Speech recognition error:', e.error);
   };
   r.onend = () => {
+    if (_submitOnEnd) {
+      _submitOnEnd = false;
+      isRecording = false;
+      isPaused = false;
+      if (rawTranscript.trim()) {
+        navigate('review', { pendingTranscript: rawTranscript });
+      } else {
+        render(_container); // nothing captured — reset
+      }
+      return;
+    }
     if (isRecording && !isPaused) {
       isRecording = false;
       isPaused = true;
