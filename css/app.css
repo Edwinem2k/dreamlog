@@ -11,6 +11,10 @@
   --accent-mid:   #7c3aed;
   --accent-soft:  #a78bfa;
   --accent-pale:  #2d1b69;
+  --accent-deep:    #4c1d95;   /* deepest purple — badge borders, record btn */
+  --success-bg:     #064e3b;   /* success badge background */
+  --success-border: #065f46;   /* success badge border */
+  --accent-darkest: #3b0764;   /* record button dark stop */
   --text-primary: #f1f0ff;
   --text-muted:   #c4c2e8;
   --text-faint:   #6b7280;
@@ -65,7 +69,7 @@ body {
   position: fixed; inset: 0; background: rgba(0,0,0,0.6);
   opacity: 0; pointer-events: none; transition: opacity 200ms ease; z-index: 100;
 }
-.drawer-overlay.open { opacity: 1; pointer-events: all; }
+.drawer-overlay.open { opacity: 1; pointer-events: auto; }
 .drawer {
   position: fixed; top: 0; left: 0; bottom: 0; width: 240px;
   background: var(--bg-surface); border-right: 1px solid var(--border);
@@ -94,7 +98,7 @@ body {
   background: var(--bg-elevated); border: 1px solid var(--border-soft);
   color: var(--accent-soft); font-size: 13px; font-weight: 500; cursor: pointer;
 }
-.btn-danger { color: var(--danger); border-color: var(--border-soft); }
+.btn-danger { color: var(--danger); border-color: var(--border-soft); } /* modifier — apply alongside .btn-secondary */
 
 /* ── Inputs ─────────────────────────────────────────── */
 .input {
@@ -147,8 +151,8 @@ body {
   display: inline-block; padding: 2px 8px; border-radius: var(--radius-full);
   font-size: 11px; font-weight: 600;
 }
-.badge-lucid  { background: var(--accent-pale); color: var(--accent-soft); border: 1px solid #4c1d95; }
-.badge-high   { background: #064e3b; color: var(--success); border: 1px solid #065f46; }
+.badge-lucid  { background: var(--accent-pale); color: var(--accent-soft); border: 1px solid var(--accent-deep); }
+.badge-high   { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
 .badge-none   { background: var(--bg-elevated); color: var(--text-ghost); border: 1px solid var(--border-soft); }
 
 /* ── Skeleton loading ───────────────────────────────── */
@@ -163,8 +167,8 @@ body {
 /* ── Record button ──────────────────────────────────── */
 .record-btn {
   width: 120px; height: 120px; border-radius: 50%; border: none; cursor: pointer;
-  background: radial-gradient(circle at 35% 35%, #6d28d9, #3b0764);
-  box-shadow: 0 0 0 16px rgba(109,40,217,0.12), 0 0 0 32px rgba(109,40,217,0.06);
+  background: radial-gradient(circle at 35% 35%, #6d28d9, var(--accent-darkest));
+  box-shadow: 0 0 0 16px rgba(109,40,217,0.12), 0 0 0 32px rgba(109,40,217,0.06); /* --accent at opacity */
   display: flex; align-items: center; justify-content: center;
   transition: transform 100ms ease;
 }
@@ -173,12 +177,12 @@ body {
   animation: record-pulse 1.8s ease-in-out infinite;
 }
 .record-btn.paused {
-  background: radial-gradient(circle at 35% 35%, #4c1d95, #2e1065);
-  box-shadow: 0 0 0 16px rgba(109,40,217,0.07), 0 0 0 32px rgba(109,40,217,0.03);
+  background: radial-gradient(circle at 35% 35%, var(--accent-deep), #2e1065);
+  box-shadow: 0 0 0 16px rgba(109,40,217,0.07), 0 0 0 32px rgba(109,40,217,0.03); /* --accent at opacity */
 }
 @keyframes record-pulse {
-  0%,100% { transform: scale(1); box-shadow: 0 0 0 16px rgba(109,40,217,0.15), 0 0 0 32px rgba(109,40,217,0.07); }
-  50%      { transform: scale(1.06); box-shadow: 0 0 0 20px rgba(109,40,217,0.18), 0 0 0 38px rgba(109,40,217,0.08); }
+  0%,100% { transform: scale(1); box-shadow: 0 0 0 16px rgba(109,40,217,0.15), 0 0 0 32px rgba(109,40,217,0.07); } /* --accent at opacity */
+  50%      { transform: scale(1.06); box-shadow: 0 0 0 20px rgba(109,40,217,0.18), 0 0 0 38px rgba(109,40,217,0.08); } /* --accent at opacity */
 }
 
 /* ── Lucidity selector ──────────────────────────────── */
