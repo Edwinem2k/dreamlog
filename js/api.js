@@ -5,6 +5,7 @@ import { db } from './db.js';
 
 async function post(path, body) {
   const { workerUrl } = db.getSettings();
+  if (!workerUrl) throw new Error('Worker URL not configured — set it in Settings');
   const res = await fetch(`${workerUrl}${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -15,6 +16,7 @@ async function post(path, body) {
 
 async function get(path) {
   const { workerUrl } = db.getSettings();
+  if (!workerUrl) throw new Error('Worker URL not configured — set it in Settings');
   return fetch(`${workerUrl}${path}`);
 }
 

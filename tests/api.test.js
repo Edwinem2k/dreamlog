@@ -16,19 +16,28 @@ global.fetch = async () => mockFetchResponse;
 const { api } = await import('../js/api.js');
 const { db }  = await import('../js/db.js');
 
+beforeEach(() => {
+  mockFetchResponse = null;
+  global.fetch = async () => mockFetchResponse;
+  db.saveSettings({ workerUrl: 'https://worker.example.com' });
+});
+
 describe('api.testConnection', () => {
   it('returns true when worker responds ok', async () => {
     mockFetchResponse = { ok: true, json: async () => ({ ok: true }) };
-    db.saveSettings({ workerUrl: 'https://worker.example.com' });
     const result = await api.testConnection();
     assert.equal(result, true);
   });
 
   it('returns false when fetch fails', async () => {
-    global.fetch = async () => { throw new Error('Network error'); };
-    const result = await api.testConnection();
-    assert.equal(result, false);
-    global.fetch = async () => mockFetchResponse;
+    const originalFetch = global.fetch;
+    try {
+      global.fetch = async () => { throw new Error('Network error'); };
+      const result = await api.testConnection();
+      assert.equal(result, false);
+    } finally {
+      global.fetch = originalFetch;
+    }
   });
 });
 
@@ -41,7 +50,6 @@ describe('api.analyseTranscript', () => {
         analysis: { emotions: ['wonder'], themes: [], characters: [], locations: [], dream_signs: [], summary: 'A dream.' },
       }),
     };
-    db.saveSettings({ workerUrl: 'https://worker.example.com' });
     const result = await api.analyseTranscript('raw text');
     assert.equal(result.cleanedTranscript, 'clean text');
     assert.deepEqual(result.analysis.emotions, ['wonder']);
@@ -51,14 +59,12 @@ describe('api.analyseTranscript', () => {
 describe('api.saveDream', () => {
   it('returns notionPageId on success', async () => {
     mockFetchResponse = { ok: true, json: async () => ({ notionPageId: 'abc123' }) };
-    db.saveSettings({ workerUrl: 'https://worker.example.com' });
     const result = await api.saveDream({ rawTranscript: 'raw', cleanedTranscript: 'clean' });
     assert.equal(result.notionPageId, 'abc123');
   });
 
   it('throws when worker returns non-ok', async () => {
     mockFetchResponse = { ok: false, status: 500 };
-    db.saveSettings({ workerUrl: 'https://worker.example.com' });
     await assert.rejects(() => api.saveDream({}), /Worker error 500/);
   });
 });
@@ -66,14 +72,12 @@ describe('api.saveDream', () => {
 describe('api.getDreams', () => {
   it('returns results array on success', async () => {
     mockFetchResponse = { ok: true, json: async () => ({ results: [{ id: '1' }] }) };
-    db.saveSettings({ workerUrl: 'https://worker.example.com' });
     const result = await api.getDreams();
     assert.equal(result.results.length, 1);
   });
 
   it('throws when worker returns non-ok', async () => {
     mockFetchResponse = { ok: false, status: 503 };
-    db.saveSettings({ workerUrl: 'https://worker.example.com' });
     await assert.rejects(() => api.getDreams(), /Worker error 503/);
   });
 });
@@ -81,13 +85,11 @@ describe('api.getDreams', () => {
 describe('api.updateDream', () => {
   it('resolves without error on success', async () => {
     mockFetchResponse = { ok: true, json: async () => ({}) };
-    db.saveSettings({ workerUrl: 'https://worker.example.com' });
     await assert.doesNotReject(() => api.updateDream('page-id', { lucidity: 3 }));
   });
 
   it('throws when worker returns non-ok', async () => {
     mockFetchResponse = { ok: false, status: 400 };
-    db.saveSettings({ workerUrl: 'https://worker.example.com' });
     await assert.rejects(() => api.updateDream('page-id', {}), /Worker error 400/);
   });
 });
