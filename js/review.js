@@ -235,8 +235,8 @@ function tagField(label, id, field) {
       </div>
       <div class="chips-row" id="${id}"></div>
       <div class="chip-input-wrap" id="${id}-input-wrap" style="display:none;margin-top:8px;position:relative">
-        <input type="search" placeholder="Tag name" data-field="${field}"
-               autocomplete="off" autocorrect="off" autocapitalize="words"
+        <input type="text" placeholder="Tag name" data-field="${field}"
+               autocomplete="new-password" autocorrect="off" spellcheck="false"
                style="width:100%;background:var(--bg-elevated);border:1px solid var(--border-soft);border-radius:var(--radius-sm);color:var(--text-primary);font-size:16px;outline:none;padding:8px 12px"
                class="chip-text-input" id="${id}-input">
         <div class="chip-autocomplete" id="${id}-autocomplete" style="display:none"></div>
@@ -318,30 +318,33 @@ function wireTagInput(containerId, draftKey) {
     acList.style.display = 'none';
   }
 
+  let _blurTimer = null;
+
   function commitInput() {
+    clearTimeout(_blurTimer);
     const val = input.value.trim();
-    if (val) {
-      addTag(containerId, draftKey, val);
-      hideInput();
-    } else {
-      hideInput();
-    }
+    if (val) addTag(containerId, draftKey, val);
+    hideInput();
   }
 
   if (addBtn) {
     addBtn.addEventListener('click', () => {
-      if (wrap.style.display === 'none') {
-        showInput();
-      } else {
-        commitInput();
-      }
+      if (wrap.style.display === 'none') showInput();
+      else commitInput();
     });
   }
 
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') { e.preventDefault(); commitInput(); }
-    if (e.key === 'Escape') hideInput();
+    if (e.key === 'Escape') { clearTimeout(_blurTimer); hideInput(); }
   });
+
+  // Commit on tap-away; delay lets autocomplete clicks fire first
+  input.addEventListener('blur', () => {
+    _blurTimer = setTimeout(commitInput, 150);
+  });
+  acList.addEventListener('mousedown', () => clearTimeout(_blurTimer));
+  acList.addEventListener('touchstart', () => clearTimeout(_blurTimer), { passive: true });
 }
 
 function addTag(containerId, draftKey, tag) {

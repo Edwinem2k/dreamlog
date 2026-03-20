@@ -222,8 +222,8 @@ function editTagField(label, id, key, editDraft) {
         ${editDraft[key].map(t => `<span class="chip" data-tag="${esc(t)}" data-key="${key}"><span class="chip-remove">×</span> ${esc(t)}</span>`).join('')}
       </div>
       <div id="${id}-input-wrap" style="display:none;margin-top:8px">
-        <input type="search" placeholder="Tag name" id="${id}-input"
-               autocomplete="off" autocorrect="off" autocapitalize="words"
+        <input type="text" placeholder="Tag name" id="${id}-input"
+               autocomplete="new-password" autocorrect="off" spellcheck="false"
                style="width:100%;background:var(--bg-elevated);border:1px solid var(--border-soft);border-radius:var(--radius-sm);color:var(--text-primary);font-size:16px;outline:none;padding:8px 12px">
       </div>
     </div>
@@ -249,7 +249,10 @@ function wireEditTagField(containerId, key, editDraft) {
   function showInput() { wrap.style.display = 'block'; input.focus(); }
   function hideInput() { wrap.style.display = 'none'; input.value = ''; }
 
+  let _blurTimer = null;
+
   function commitInput() {
+    clearTimeout(_blurTimer);
     const tag = input.value.trim();
     if (tag && !editDraft[key].includes(tag)) {
       editDraft[key].push(tag);
@@ -270,6 +273,10 @@ function wireEditTagField(containerId, key, editDraft) {
 
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') { e.preventDefault(); commitInput(); }
-    if (e.key === 'Escape') hideInput();
+    if (e.key === 'Escape') { clearTimeout(_blurTimer); hideInput(); }
+  });
+
+  input.addEventListener('blur', () => {
+    _blurTimer = setTimeout(commitInput, 150);
   });
 }
