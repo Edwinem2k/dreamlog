@@ -6,8 +6,8 @@
   "orientation": "portrait",
   "background_color": "#0d0f1a",
   "theme_color": "#1e1b4b",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": "/dreamlog/",
+  "scope": "/dreamlog/",
   "icons": [
     {
       "src": "icons/icon-192.png",

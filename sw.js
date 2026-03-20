@@ -3,21 +3,21 @@ const CACHE_NAME = 'dreamlog-v1';
 
 // App shell files to cache on install
 const APP_SHELL = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/css/app.css',
-  '/js/app.js',
-  '/js/record.js',
-  '/js/review.js',
-  '/js/journal.js',
-  '/js/patterns.js',
-  '/js/settings.js',
-  '/js/api.js',
-  '/js/db.js',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
-  '/icons/apple-touch-icon.png',
+  '/dreamlog/',
+  '/dreamlog/index.html',
+  '/dreamlog/manifest.json',
+  '/dreamlog/css/app.css',
+  '/dreamlog/js/app.js',
+  '/dreamlog/js/record.js',
+  '/dreamlog/js/review.js',
+  '/dreamlog/js/journal.js',
+  '/dreamlog/js/patterns.js',
+  '/dreamlog/js/settings.js',
+  '/dreamlog/js/api.js',
+  '/dreamlog/js/db.js',
+  '/dreamlog/icons/icon-192.png',
+  '/dreamlog/icons/icon-512.png',
+  '/dreamlog/icons/apple-touch-icon.png',
 ];
 
 // Install: cache app shell
