@@ -17,7 +17,6 @@ let isRecording  = false;
 let isPaused     = false;
 let rawTranscript = '';
 let _container = null;
-let _wakeLock = null;
 
 // ── Render ────────────────────────────────────────────
 export function render(container) {
@@ -45,7 +44,7 @@ export function render(container) {
         <button class="record-btn" id="rec-btn" aria-label="Start recording">
           ${iconCircle()}
         </button>
-        <p id="rec-hint" style="margin-top:16px;font-size:13px;color:var(--text-ghost)">Tap to record</p>
+        <p id="rec-hint" style="margin-top:16px;font-size:13px;color:var(--text-ghost)"></p>
       </div>
 
       <div id="rec-controls" style="display:none;padding:0 20px 20px" class="safe-bottom">
@@ -145,10 +144,6 @@ async function startRecording() {
   isRecording = true;
   isPaused    = false;
   updateUI('recording');
-  // Keep screen awake while recording
-  try {
-    if ('wakeLock' in navigator) _wakeLock = await navigator.wakeLock.request('screen');
-  } catch { /* wake lock not available — silently ignore */ }
 }
 
 function pauseRecording() {
@@ -172,8 +167,6 @@ function stopRecognition() {
   recognition = null;
   isRecording = false;
   isPaused    = false;
-  _wakeLock?.release();
-  _wakeLock = null;
 }
 
 // ── UI updates ────────────────────────────────────────

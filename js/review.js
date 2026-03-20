@@ -231,10 +231,11 @@ function tagField(label, id, field) {
     <div class="mt-16">
       <span class="field-label">${label}</span>
       <div class="chips-row" id="${id}"></div>
-      <div class="chip-input-wrap mt-8" id="${id}-input-wrap">
-        <input type="text" placeholder="+ Add" data-field="${field}"
-               style="background:none;border:none;color:var(--text-faint);font-size:13px;outline:none;width:120px"
+      <div class="chip-input-wrap mt-8" id="${id}-input-wrap" style="display:flex;align-items:center;gap:6px">
+        <input type="text" placeholder="Add tag" data-field="${field}"
+               style="background:none;border:none;color:var(--text-faint);font-size:16px;outline:none;flex:1;min-width:0"
                class="chip-text-input" id="${id}-input">
+        <button id="${id}-add" style="background:none;border:none;color:var(--accent-soft);font-size:18px;cursor:pointer;padding:0 4px;line-height:1">+</button>
         <div class="chip-autocomplete" id="${id}-autocomplete" style="display:none"></div>
       </div>
     </div>
@@ -300,13 +301,21 @@ function wireTagInput(containerId, draftKey) {
     });
   });
 
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && input.value.trim()) {
-      addTag(containerId, draftKey, input.value.trim());
+  function commitInput() {
+    const val = input.value.trim();
+    if (val) {
+      addTag(containerId, draftKey, val);
       input.value = '';
       acList.style.display = 'none';
     }
+  }
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); commitInput(); }
   });
+
+  const addBtn = document.getElementById(`${containerId}-add`);
+  if (addBtn) addBtn.addEventListener('click', commitInput);
 }
 
 function addTag(containerId, draftKey, tag) {

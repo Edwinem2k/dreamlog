@@ -45,7 +45,7 @@ export function navigate(screenName, params = {}) {
 const NAV_ITEMS = [
   { screen: 'record',   icon: '🌙', label: 'Home' },
   { screen: 'journal',  icon: '📖', label: 'Journal' },
-  { screen: 'patterns', icon: '📊', label: 'Patterns' },
+  { screen: 'patterns', icon: '🌀', label: 'Patterns' },
   { screen: 'settings', icon: '⚙️',  label: 'Settings' },
 ];
 
@@ -96,6 +96,17 @@ function closeDrawer() {
   }
 }
 
+// ── Wake lock ─────────────────────────────────────────
+async function requestWakeLock() {
+  try {
+    if ('wakeLock' in navigator) await navigator.wakeLock.request('screen');
+  } catch { /* silently ignore */ }
+}
+// Re-acquire after returning to the app (wake lock releases on page hide)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') requestWakeLock();
+});
+
 // ── Bootstrap ─────────────────────────────────────────
 function boot() {
   appEl.innerHTML = `
@@ -108,6 +119,7 @@ function boot() {
     navigator.serviceWorker.register('/sw.js').catch(console.warn);
   }
 
+  requestWakeLock();
   navigate('record');
 }
 
