@@ -15,6 +15,7 @@
   --success-bg:     #064e3b;   /* success badge background */
   --success-border: #065f46;   /* success badge border */
   --accent-darkest: #3b0764;   /* record button dark stop */
+  --accent-darkest-paused: #2e1065;  /* record button paused state — darkest stop */
   --text-primary: #f1f0ff;
   --text-muted:   #c4c2e8;
   --text-faint:   #6b7280;
@@ -167,7 +168,7 @@ body {
 /* ── Record button ──────────────────────────────────── */
 .record-btn {
   width: 120px; height: 120px; border-radius: 50%; border: none; cursor: pointer;
-  background: radial-gradient(circle at 35% 35%, #6d28d9, var(--accent-darkest));
+  background: radial-gradient(circle at 35% 35%, var(--accent), var(--accent-darkest));
   box-shadow: 0 0 0 16px rgba(109,40,217,0.12), 0 0 0 32px rgba(109,40,217,0.06); /* --accent at opacity */
   display: flex; align-items: center; justify-content: center;
   transition: transform 100ms ease;
@@ -177,7 +178,7 @@ body {
   animation: record-pulse 1.8s ease-in-out infinite;
 }
 .record-btn.paused {
-  background: radial-gradient(circle at 35% 35%, var(--accent-deep), #2e1065);
+  background: radial-gradient(circle at 35% 35%, var(--accent-deep), var(--accent-darkest-paused));
   box-shadow: 0 0 0 16px rgba(109,40,217,0.07), 0 0 0 32px rgba(109,40,217,0.03); /* --accent at opacity */
 }
 @keyframes record-pulse {
