@@ -229,13 +229,15 @@ function renderLuciditySelector() {
 function tagField(label, id, field) {
   return `
     <div class="mt-16">
-      <span class="field-label">${label}</span>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <span class="field-label" style="margin-bottom:0">${label}</span>
+        <button id="${id}-add" style="background:none;border:none;color:var(--accent-soft);font-size:22px;cursor:pointer;padding:0;line-height:1;width:28px;height:28px;display:flex;align-items:center;justify-content:center">+</button>
+      </div>
       <div class="chips-row" id="${id}"></div>
-      <div class="chip-input-wrap mt-8" id="${id}-input-wrap" style="display:flex;align-items:center;gap:6px">
-        <input type="text" placeholder="Add tag" data-field="${field}"
-               style="background:none;border:none;color:var(--text-faint);font-size:16px;outline:none;flex:1;min-width:0"
+      <div class="chip-input-wrap" id="${id}-input-wrap" style="display:none;margin-top:8px;position:relative">
+        <input type="text" placeholder="Tag name" data-field="${field}"
+               style="width:100%;background:var(--bg-elevated);border:1px solid var(--border-soft);border-radius:var(--radius-sm);color:var(--text-primary);font-size:16px;outline:none;padding:8px 12px"
                class="chip-text-input" id="${id}-input">
-        <button id="${id}-add" style="background:none;border:none;color:var(--accent-soft);font-size:18px;cursor:pointer;padding:0 4px;line-height:1">+</button>
         <div class="chip-autocomplete" id="${id}-autocomplete" style="display:none"></div>
       </div>
     </div>
@@ -301,21 +303,44 @@ function wireTagInput(containerId, draftKey) {
     });
   });
 
+  const wrap   = document.getElementById(`${containerId}-input-wrap`);
+  const addBtn = document.getElementById(`${containerId}-add`);
+
+  function showInput() {
+    wrap.style.display = 'block';
+    input.focus();
+  }
+
+  function hideInput() {
+    wrap.style.display = 'none';
+    input.value = '';
+    acList.style.display = 'none';
+  }
+
   function commitInput() {
     const val = input.value.trim();
     if (val) {
       addTag(containerId, draftKey, val);
-      input.value = '';
-      acList.style.display = 'none';
+      hideInput();
+    } else {
+      hideInput();
     }
+  }
+
+  if (addBtn) {
+    addBtn.addEventListener('click', () => {
+      if (wrap.style.display === 'none') {
+        showInput();
+      } else {
+        commitInput();
+      }
+    });
   }
 
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') { e.preventDefault(); commitInput(); }
+    if (e.key === 'Escape') hideInput();
   });
-
-  const addBtn = document.getElementById(`${containerId}-add`);
-  if (addBtn) addBtn.addEventListener('click', commitInput);
 }
 
 function addTag(containerId, draftKey, tag) {

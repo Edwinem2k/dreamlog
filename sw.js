@@ -1,5 +1,5 @@
 // sw.js
-const CACHE_NAME = 'dreamlog-v1';
+const CACHE_NAME = 'dreamlog-v2';
 
 // App shell files to cache on install
 const APP_SHELL = [
