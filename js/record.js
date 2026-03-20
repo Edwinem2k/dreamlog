@@ -137,6 +137,7 @@ function startRecording() {
 
 function pauseRecording() {
   recognition?.stop();
+  isRecording = false;
   isPaused = true;
   updateUI('paused');
 }
@@ -157,6 +158,7 @@ function resumeRecording() {
     if (e.error !== 'aborted') console.warn('Speech recognition error:', e.error);
   };
   recognition.start();
+  isRecording = true;
   isPaused = false;
   updateUI('recording');
 }
