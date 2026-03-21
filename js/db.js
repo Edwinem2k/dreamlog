@@ -29,7 +29,8 @@ export const db = {
 
   // ── Dreams ─────────────────────────────────────────
   getDreams() {
-    return read(KEYS.DREAMS, []);
+    const dreams = read(KEYS.DREAMS, []);
+    return dreams.sort((a, b) => (b.date > a.date ? 1 : b.date < a.date ? -1 : 0));
   },
   saveDream(dream) {
     const dreams = this.getDreams();
