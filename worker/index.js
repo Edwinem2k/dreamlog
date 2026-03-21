@@ -21,6 +21,63 @@ const ANALYSE_PROMPT = `You are a lucid dreaming analyst. Analyse the following 
 
 Return raw JSON only — no markdown code blocks, no commentary.`;
 
+// ── Lucidity lookup ───────────────────────────────────
+const LUCIDITY_LABELS = ['Unaware', 'Glimmer', 'Flicker', 'Witness', 'Pilot', 'Architect'];
+function lucidityFromLabel(label) {
+  const idx = LUCIDITY_LABELS.indexOf(label);
+  return idx >= 0 ? idx : 0;
+}
+
+// ── Notion page → app dream mapping ──────────────────
+function extractMultiSelect(prop) {
+  return prop?.multi_select?.map(o => o.name) ?? [];
+}
+
+function extractRichText(blocks) {
+  return blocks
+    .filter(b => b.type === 'paragraph')
+    .flatMap(b => b.paragraph.rich_text.map(r => r.text?.content ?? ''))
+    .join(' ')
+    .trim();
+}
+
+function extractToggleChildren(blocks, toggleTitle) {
+  const toggle = blocks.find(
+    b => b.type === 'toggle' &&
+         b.toggle.rich_text?.[0]?.text?.content === toggleTitle
+  );
+  if (!toggle?.children) return '';
+  return toggle.children
+    .filter(b => b.type === 'paragraph')
+    .flatMap(b => b.paragraph.rich_text.map(r => r.text?.content ?? ''))
+    .join(' ')
+    .trim();
+}
+
+function extractCallout(blocks) {
+  const callout = blocks.find(b => b.type === 'callout');
+  return callout?.callout?.rich_text?.map(r => r.text?.content ?? '').join('') ?? '';
+}
+
+function notionPageToAppDream(page, blocks) {
+  const props = page.properties;
+  return {
+    id:            crypto.randomUUID(),
+    notionPageId:  page.id,
+    date:          props.Date?.date?.start ?? '',
+    lucidityLabel: props.Lucidity?.select?.name ?? '',
+    lucidity:      lucidityFromLabel(props.Lucidity?.select?.name ?? ''),
+    emotions:      extractMultiSelect(props.Emotions),
+    themes:        extractMultiSelect(props.Themes),
+    characters:    extractMultiSelect(props.Characters),
+    locations:     extractMultiSelect(props.Locations),
+    dreamSigns:    extractMultiSelect(props['Dream Signs']),
+    cleanedTranscript: extractRichText(blocks),
+    rawTranscript:     extractToggleChildren(blocks, 'Raw recording'),
+    summary:           extractCallout(blocks),
+  };
+}
+
 // ── Route handlers ────────────────────────────────────
 
 async function handleAnalyse(request, env) {
@@ -83,10 +140,50 @@ async function handleSave(request, env) {
 }
 
 async function handleGetDreams(env) {
-  const notionRes = await queryNotionDatabase(env.NOTION_API_KEY, env.NOTION_DATABASE_ID);
-  if (!notionRes.ok) return jsonError('Notion query failed', 502);
-  const data = await notionRes.json();
-  return jsonOk({ results: data.results });
+  try {
+    const pages = await fetchAllNotionPages(env.NOTION_API_KEY, env.NOTION_DATABASE_ID);
+    return jsonOk({ results: pages });
+  } catch (err) {
+    return jsonError(err.message, 502);
+  }
+}
+
+async function handleSync(request, env) {
+  let knownIds;
+  try {
+    ({ knownIds } = await request.json());
+  } catch {
+    return jsonError('invalid JSON body', 400);
+  }
+  if (!Array.isArray(knownIds)) return jsonError('knownIds must be an array', 400);
+
+  let allPages;
+  try {
+    allPages = await fetchAllNotionPages(env.NOTION_API_KEY, env.NOTION_DATABASE_ID);
+  } catch (err) {
+    return jsonError(`Notion query failed: ${err.message}`, 502);
+  }
+
+  const notionIds = new Set(allPages.map(p => p.id));
+  const knownSet  = new Set(knownIds);
+
+  const pagesToImport = allPages.filter(p => !knownSet.has(p.id));
+  const toDelete      = knownIds.filter(id => !notionIds.has(id));
+
+  // Fetch blocks in batches of 10 to respect Cloudflare Worker subrequest limits
+  const toImport = [];
+  for (let i = 0; i < pagesToImport.length; i += 10) {
+    const batch = pagesToImport.slice(i, i + 10);
+    const results = await Promise.all(
+      batch.map(async page => {
+        const blocks = await fetchPageBlocks(env.NOTION_API_KEY, page.id);
+        return notionPageToAppDream(page, blocks);
+      })
+    );
+    toImport.push(...results);
+  }
+
+  return jsonOk({ toImport, toDelete });
 }
 
 async function handleUpdateDream(request, env) {
@@ -137,6 +234,9 @@ export default {
         case '/update':
           if (request.method !== 'POST') { response = jsonError('Method not allowed', 405); break; }
           response = await handleUpdateDream(request, env); break;
+        case '/sync':
+          if (request.method !== 'POST') { response = jsonError('Method not allowed', 405); break; }
+          response = await handleSync(request, env); break;
         case '/ping':    response = await handlePing();                 break;
         default: response = jsonError('Not found', 404);
       }
@@ -170,12 +270,48 @@ function callClaude(apiKey, systemPrompt, userText, maxTokens = 1024) {
 }
 
 // ── Notion helpers ────────────────────────────────────
-function queryNotionDatabase(apiKey, databaseId) {
-  return fetch(`https://api.notion.com/v1/databases/${databaseId}/query`, {
-    method: 'POST',
+async function fetchAllNotionPages(apiKey, databaseId) {
+  const pages = [];
+  let cursor;
+  do {
+    const body = { sorts: [{ property: 'Date', direction: 'descending' }] };
+    if (cursor) body.start_cursor = cursor;
+    const res = await fetch(`https://api.notion.com/v1/databases/${databaseId}/query`, {
+      method: 'POST',
+      headers: notionHeaders(apiKey),
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error(`status ${res.status}`);
+    const data = await res.json();
+    pages.push(...data.results);
+    cursor = data.has_more ? data.next_cursor : undefined;
+  } while (cursor);
+  return pages;
+}
+
+async function fetchPageBlocks(apiKey, pageId) {
+  const res = await fetch(`https://api.notion.com/v1/blocks/${pageId}/children`, {
     headers: notionHeaders(apiKey),
-    body: JSON.stringify({ sorts: [{ property: 'Date', direction: 'descending' }] }),
   });
+  if (!res.ok) return [];  // graceful degradation — caller imports with empty content
+  const data = await res.json();
+  // Fetch toggle children inline (needed for "Raw recording" toggle).
+  // NOTE: Only fetches first page of toggle children (Notion limit: 100 blocks per request).
+  // A very long rawTranscript split into more than 100 blocks would be silently truncated.
+  // This is acceptable for v1 — 100 × 1999 chars ≈ 200k chars, far exceeding typical dreams.
+  const blocks = await Promise.all(data.results.map(async block => {
+    if (block.type === 'toggle' && block.has_children) {
+      const childRes = await fetch(`https://api.notion.com/v1/blocks/${block.id}/children`, {
+        headers: notionHeaders(apiKey),
+      });
+      if (childRes.ok) {
+        const childData = await childRes.json();
+        return { ...block, children: childData.results };
+      }
+    }
+    return block;
+  }));
+  return blocks;
 }
 
 function createNotionPage(apiKey, databaseId, dream) {
