@@ -1,5 +1,5 @@
 // js/settings.js
-import { openDrawer } from './app.js';
+import { openDrawer, navigate, state } from './app.js';
 import { db } from './db.js';
 import { api } from './api.js';
 
@@ -38,6 +38,15 @@ export function render(container) {
             All API credentials (Anthropic key, Notion key, database ID) are stored securely in your Cloudflare Worker environment variables — never in this app. Only the Worker URL is needed here.
           </p>
         </div>
+
+        <div style="margin-top:32px;padding-top:20px;border-top:1px solid var(--border)">
+          <p class="field-label" style="margin-bottom:8px">Notion Sync</p>
+          <p style="font-size:11px;color:var(--text-ghost);line-height:1.6;margin-bottom:12px">
+            Import dreams added directly to Notion, remove dreams deleted from Notion, and retry any failed saves.
+          </p>
+          <button class="btn-secondary" id="set-sync" style="width:100%">Sync from Notion</button>
+          <div id="set-sync-status" style="margin-top:10px;font-size:13px;text-align:center;min-height:20px"></div>
+        </div>
       </div>
     </div>
   `;
@@ -62,9 +71,71 @@ export function render(container) {
     const ok = await api.testConnection();
     showStatus(ok ? 'Connected ✓' : 'Connection failed ✗', ok ? 'var(--success)' : 'var(--danger)');
   });
+
+  document.getElementById('set-sync').addEventListener('click', async () => {
+    const btn = document.getElementById('set-sync');
+    btn.disabled = true;
+    showSyncStatus('Syncing…', 'var(--text-faint)');
+
+    try {
+      // Collect known notionPageIds — updated after each loop to avoid re-importing
+      let knownIds = db.getDreams().map(d => d.notionPageId).filter(Boolean);
+      let totalImported = 0;
+      let totalDeleted = 0;
+
+      // Loop until no more dreams to import — handles Cloudflare subrequest limit
+      // (free plan: 50 subrequests/invocation; large imports need multiple calls)
+      while (true) {
+        const { toImport, toDelete } = await api.sync(knownIds);
+
+        if (toImport.length) db.importDreams(toImport);
+        toDelete.forEach(id => db.deleteDream(id));
+
+        totalImported += toImport.length;
+        totalDeleted  += toDelete.length;
+
+        if (toImport.length === 0) break;
+
+        // Add newly imported IDs so next call skips them
+        knownIds = db.getDreams().map(d => d.notionPageId).filter(Boolean);
+      }
+
+      // Retry local dreams with no notionPageId (failed saves)
+      const pending = db.getDreams().filter(d => !d.notionPageId);
+      let retryOk = 0;
+      for (const dream of pending) {
+        try {
+          const { notionPageId } = await api.retrySave(dream);
+          db.updateDream(dream.id, { notionPageId });
+          retryOk++;
+        } catch { /* skip, will retry next sync */ }
+      }
+
+      // Build summary
+      const parts = [];
+      if (totalImported) parts.push(`${totalImported} imported`);
+      if (totalDeleted)  parts.push(`${totalDeleted} deleted`);
+      if (pending.length) parts.push(`${retryOk} of ${pending.length} pending saves retried`);
+      const summary = parts.length ? parts.join(', ') : 'Already up to date';
+      showSyncStatus(summary + ' ✓', 'var(--success)');
+
+      // Re-render journal if it is the current screen
+      if (state.currentScreen === 'journal') navigate('journal');
+
+    } catch (err) {
+      showSyncStatus(`Sync failed: ${err.message}`, 'var(--danger)');
+    } finally {
+      btn.disabled = false;
+    }
+  });
 }
 
 function showStatus(msg, color) {
   const el = document.getElementById('set-status');
+  if (el) { el.textContent = msg; el.style.color = color; }
+}
+
+function showSyncStatus(msg, color) {
+  const el = document.getElementById('set-sync-status');
   if (el) { el.textContent = msg; el.style.color = color; }
 }
