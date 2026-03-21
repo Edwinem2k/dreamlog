@@ -170,7 +170,10 @@ async function handleSync(request, env) {
   const pagesToImport = allPages.filter(p => !knownSet.has(p.id));
   const toDelete      = knownIds.filter(id => !notionIds.has(id));
 
-  // Fetch blocks in batches of 10 to respect Cloudflare Worker subrequest limits
+  // Fetch blocks in batches of 10. Note: nested toggle child fetches inside
+  // fetchPageBlocks mean total subrequests can exceed 10 per batch on pages with
+  // toggle blocks. Free plan limit is 50; paid plan is 1000. For large initial
+  // imports the client calls /sync in a loop until toImport is empty.
   const toImport = [];
   for (let i = 0; i < pagesToImport.length; i += 10) {
     const batch = pagesToImport.slice(i, i + 10);
