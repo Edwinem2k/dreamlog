@@ -39,6 +39,15 @@ export const db = {
     const dreams = this.getDreams().map(d => d.id === id ? { ...d, ...patch } : d);
     write(KEYS.DREAMS, dreams);
   },
+  deleteDream(notionPageId) {
+    const dreams = this.getDreams().filter(d => d.notionPageId !== notionPageId);
+    write(KEYS.DREAMS, dreams);
+  },
+  importDreams(newDreams) {
+    if (!newDreams.length) return;
+    const existing = this.getDreams();
+    write(KEYS.DREAMS, [...newDreams, ...existing]);
+  },
   getRecentDreams(days) {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - days);

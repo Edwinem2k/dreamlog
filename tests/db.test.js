@@ -100,3 +100,56 @@ describe('db.getRecentDreams', () => {
     assert.equal(recent[0].id, '2');
   });
 });
+
+describe('db.deleteDream', () => {
+  beforeEach(() => { Object.keys(store).forEach(k => delete store[k]); });
+
+  it('removes dream with matching notionPageId', () => {
+    db.saveDream({ id: '1', notionPageId: 'np-1', date: '2026-01-01' });
+    db.saveDream({ id: '2', notionPageId: 'np-2', date: '2026-01-02' });
+    db.deleteDream('np-1');
+    const dreams = db.getDreams();
+    assert.equal(dreams.length, 1);
+    assert.equal(dreams[0].notionPageId, 'np-2');
+  });
+
+  it('is a no-op when notionPageId not found', () => {
+    db.saveDream({ id: '1', notionPageId: 'np-1', date: '2026-01-01' });
+    db.deleteDream('np-999');
+    assert.equal(db.getDreams().length, 1);
+  });
+});
+
+describe('db.importDreams', () => {
+  beforeEach(() => { Object.keys(store).forEach(k => delete store[k]); });
+
+  it('prepends imported dreams to existing dreams', () => {
+    db.saveDream({ id: 'existing', date: '2026-01-01' });
+    db.importDreams([
+      { id: 'imported-1', date: '2025-06-01' },
+      { id: 'imported-2', date: '2025-07-01' },
+    ]);
+    const all = db.getDreams();
+    assert.equal(all.length, 3);
+    // Imported dreams come before existing
+    assert.ok(all.findIndex(d => d.id === 'imported-1') < all.findIndex(d => d.id === 'existing'));
+  });
+
+  it('writes atomically (single setItem call)', () => {
+    let setItemCallCount = 0;
+    const origSetItem = global.localStorage.setItem;
+    try {
+      global.localStorage.setItem = (k, v) => { setItemCallCount++; origSetItem(k, v); };
+      db.importDreams([{ id: 'a' }, { id: 'b' }, { id: 'c' }]);
+      assert.equal(setItemCallCount, 1);
+    } finally {
+      global.localStorage.setItem = origSetItem;
+    }
+  });
+
+  it('handles empty array without error', () => {
+    db.saveDream({ id: '1', date: '2026-01-01' });
+    db.importDreams([]);
+    assert.equal(db.getDreams().length, 1);
+  });
+});
