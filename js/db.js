@@ -40,8 +40,9 @@ export const db = {
     write(KEYS.DREAMS, dreams);
   },
   deleteDream(notionPageId) {
-    const dreams = this.getDreams().filter(d => d.notionPageId !== notionPageId);
-    write(KEYS.DREAMS, dreams);
+    const dreams = this.getDreams();
+    const filtered = dreams.filter(d => d.notionPageId !== notionPageId);
+    if (filtered.length !== dreams.length) write(KEYS.DREAMS, filtered);
   },
   importDreams(newDreams) {
     if (!newDreams.length) return;
