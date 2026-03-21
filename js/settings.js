@@ -78,21 +78,27 @@ export function render(container) {
     showSyncStatus('Syncing…', 'var(--text-faint)');
 
     try {
-      // Collect known notionPageIds — updated after each loop to avoid re-importing
+      // Collect known notionPageIds — updated after each iteration to avoid re-importing
       let knownIds = db.getDreams().map(d => d.notionPageId).filter(Boolean);
       let totalImported = 0;
       let totalDeleted = 0;
 
       // Loop until no more dreams to import — handles Cloudflare subrequest limit
-      // (free plan: 50 subrequests/invocation; large imports need multiple calls)
-      while (true) {
+      // (free plan: 50 subrequests/invocation; large imports need multiple calls).
+      // MAX_ROUNDS guards against a misbehaving worker that ignores knownIds.
+      const MAX_ROUNDS = 50;
+      for (let round = 0; round < MAX_ROUNDS; round++) {
         const { toImport, toDelete } = await api.sync(knownIds);
 
         if (toImport.length) db.importDreams(toImport);
-        toDelete.forEach(id => db.deleteDream(id));
-
         totalImported += toImport.length;
-        totalDeleted  += toDelete.length;
+
+        // Process deletions only on first round — toDelete is stable relative to
+        // the initial local state and applying it repeatedly is wasteful.
+        if (round === 0) {
+          toDelete.forEach(id => db.deleteDream(id));
+          totalDeleted = toDelete.length;
+        }
 
         if (toImport.length === 0) break;
 
