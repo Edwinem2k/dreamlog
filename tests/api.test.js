@@ -93,3 +93,52 @@ describe('api.updateDream', () => {
     await assert.rejects(() => api.updateDream('page-id', {}), /Worker error 400/);
   });
 });
+
+describe('api.sync', () => {
+  it('returns toImport and toDelete on success', async () => {
+    mockFetchResponse = {
+      ok: true,
+      json: async () => ({
+        toImport: [{ id: 'new-1', notionPageId: 'np-new-1', date: '2025-01-01' }],
+        toDelete: ['np-old-1'],
+      }),
+    };
+    const result = await api.sync(['np-existing-1']);
+    assert.equal(result.toImport.length, 1);
+    assert.equal(result.toImport[0].notionPageId, 'np-new-1');
+    assert.deepEqual(result.toDelete, ['np-old-1']);
+  });
+
+  it('throws when worker returns non-ok', async () => {
+    mockFetchResponse = { ok: false, status: 502 };
+    await assert.rejects(() => api.sync([]), /Worker error 502/);
+  });
+
+  it('sends knownIds in request body', async () => {
+    let capturedBody;
+    const origFetch = global.fetch;
+    try {
+      global.fetch = async (url, opts) => {
+        capturedBody = JSON.parse(opts.body);
+        return { ok: true, json: async () => ({ toImport: [], toDelete: [] }) };
+      };
+      await api.sync(['np-1', 'np-2']);
+      assert.deepEqual(capturedBody.knownIds, ['np-1', 'np-2']);
+    } finally {
+      global.fetch = origFetch;
+    }
+  });
+});
+
+describe('api.retrySave', () => {
+  it('returns notionPageId on success', async () => {
+    mockFetchResponse = { ok: true, json: async () => ({ notionPageId: 'np-retry-1' }) };
+    const result = await api.retrySave({ id: 'local-1', date: '2025-01-01' });
+    assert.equal(result.notionPageId, 'np-retry-1');
+  });
+
+  it('throws when worker returns non-ok', async () => {
+    mockFetchResponse = { ok: false, status: 500 };
+    await assert.rejects(() => api.retrySave({ id: 'local-1' }), /Worker error 500/);
+  });
+});

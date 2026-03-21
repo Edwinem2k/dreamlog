@@ -51,4 +51,16 @@ export const api = {
     if (!res.ok) throw new Error(`Worker error ${res.status}`);
     return res.json();
   },
+
+  async sync(knownIds) {
+    const res = await post('/sync', { knownIds });
+    if (!res.ok) throw new Error(`Worker error ${res.status}`);
+    return res.json(); // { toImport, toDelete }
+  },
+
+  async retrySave(dream) {
+    const res = await post('/save', dream);
+    if (!res.ok) throw new Error(`Worker error ${res.status}`);
+    return res.json(); // { notionPageId }
+  },
 };
