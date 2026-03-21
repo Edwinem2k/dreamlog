@@ -47,7 +47,9 @@ export const db = {
   importDreams(newDreams) {
     if (!newDreams.length) return;
     const existing = this.getDreams();
-    write(KEYS.DREAMS, [...newDreams, ...existing]);
+    const merged = [...newDreams, ...existing];
+    merged.sort((a, b) => (b.date > a.date ? 1 : b.date < a.date ? -1 : 0));
+    write(KEYS.DREAMS, merged);
   },
   getRecentDreams(days) {
     const cutoff = new Date();
